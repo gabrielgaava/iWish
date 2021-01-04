@@ -3,7 +3,6 @@ from django.db import models
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 
 
-
 class UserManager(BaseUserManager):
 
     # Everytime that a new user is created
@@ -40,9 +39,6 @@ class UserManager(BaseUserManager):
         return user
 
 
-
-
-
 # Create your models here.
 class User(AbstractBaseUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, db_index=True)
@@ -69,7 +65,7 @@ class User(AbstractBaseUser):
     objects = UserManager()
     
     def __str__(self):
-        return "{} - {}".format(self.username, self.name)
+        return self.username
 
 
     # When a new user is created
@@ -88,3 +84,19 @@ class User(AbstractBaseUser):
 
     def has_module_perms(self, app_label):
         return True
+
+# Following system
+class Follower(models.Model):
+    user_id = models.ForeignKey(User, related_name="following", on_delete=models.CASCADE)
+    following_user_id = models.ForeignKey(User, related_name="followers", on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user_id','following_user_id'],  name="unique_followers")
+        ]
+
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user_id} -> follows -> {self.following_user_id }"
