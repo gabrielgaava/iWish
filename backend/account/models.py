@@ -2,6 +2,21 @@ import uuid
 from django.db import models
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 
+# Following system
+class Follower(models.Model):
+    user = models.ForeignKey("User", related_name="following", on_delete=models.CASCADE)
+    following_user = models.ForeignKey("User", related_name="followers", on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user_id','following_user_id'],  name="unique_followers")
+        ]
+
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user} -> follows -> {self.following_user }"
 
 class UserManager(BaseUserManager):
 
@@ -38,8 +53,6 @@ class UserManager(BaseUserManager):
         user.save(using = self._db)
         return user
 
-
-# Create your models here.
 class User(AbstractBaseUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, db_index=True)
     username = models.CharField(max_length=150, db_index=True)
@@ -57,6 +70,16 @@ class User(AbstractBaseUser):
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
+
+    @property
+    def get_following(self):
+        following = Follower.objects.filter(user=self.id)
+        return following
+
+    @property
+    def get_followers(self):
+        followers = Follower.objects.filter(following_user=self.id)
+        return followers
 
     # Select wich field will be used to login
     USERNAME_FIELD = 'email'
@@ -85,18 +108,3 @@ class User(AbstractBaseUser):
     def has_module_perms(self, app_label):
         return True
 
-# Following system
-class Follower(models.Model):
-    user_id = models.ForeignKey(User, related_name="following", on_delete=models.CASCADE)
-    following_user_id = models.ForeignKey(User, related_name="followers", on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['user_id','following_user_id'],  name="unique_followers")
-        ]
-
-        ordering = ["-created_at"]
-
-    def __str__(self):
-        return f"{self.user_id} -> follows -> {self.following_user_id }"
